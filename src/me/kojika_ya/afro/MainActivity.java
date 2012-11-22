@@ -2,15 +2,19 @@ package me.kojika_ya.afro;
 
 import java.util.List;
 
+import me.kojika_ya.afro.adk.ADKConnector;
+import me.kojika_ya.afro.adk.MoveMsg;
+import me.kojika_ya.afro.adk.ServoMsg;
+
 import android.app.Activity;
+import android.app.FragmentManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.Rect;
 import android.graphics.PorterDuff.Mode;
-import android.graphics.RectF;
+import android.graphics.Rect;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Face;
@@ -21,8 +25,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.FrameLayout;
-import android.widget.FrameLayout.LayoutParams;
 
 /**
  * @author shikajiro
@@ -36,6 +38,8 @@ public class MainActivity extends Activity {
 	
 	private SurfaceView mOverlaySurfaceView;
 	private SurfaceHolder mOverlayHolder;
+	
+	private ADKConnector mAdkConnector;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -51,8 +55,9 @@ public class MainActivity extends Activity {
 		mOverlaySurfaceView = (SurfaceView) findViewById(R.id.overlay_surface_view);
 		mOverlayHolder = mOverlaySurfaceView.getHolder();
 		mOverlayHolder.setFormat(PixelFormat.TRANSPARENT);
-		mOverlayHolder.addCallback(mOverlayCallback);
 		
+		mAdkConnector = new ADKConnector();
+		getFragmentManager().beginTransaction().add(android.R.id.content, mAdkConnector).commit();
 	}
 
 	@Override
@@ -114,7 +119,7 @@ public class MainActivity extends Activity {
 				Rect rect = face.rect;
 
 				// xy 1204:-1024の比率
-				 Log.i("face",
+				 Log.d("face",
 				 "face rect"+rect.left+":"+rect.right+":"+rect.top+":"+rect.bottom);
 
 				int width = rect.right - rect.left;
@@ -126,15 +131,27 @@ public class MainActivity extends Activity {
 				// 大きいほど近い　小さいほど遠い
 				// TODO 計算で0~1の値に「距離」に変換したい
 				int size = width * height;
-				Log.i("face", "face point:[" + horizontalCenter + ":"
+				Log.d("face", "face point:[" + horizontalCenter + ":"
 						+ verticalCenter + "]" + " face [" + width + ":" + height
 						+ "]");
 
 				int depth = SIZE_MAX / size; // 近い1-100遠い
 				double hypo = Math.sqrt(Math.pow(horizontalCenter, 2)
 						+ Math.pow(verticalCenter, 2));
-				Log.i("face", "face depth:" + depth + " hypo:" + hypo);
+				Log.d("face", "face depth:" + depth + " hypo:" + hypo);
 				
+				short upside = (short) (horizontalCenter+700);
+				short side = (short) (verticalCenter+700);
+				
+				//ADKへの送信
+//				MoveMsg moveMsg = new MoveMsg(MoveMsg.SLOPE_ID, upside);
+//				mAdkConnector.sendCommand(moveMsg);
+//				moveMsg = new MoveMsg(MoveMsg.ROLL_ID, side);
+//				mAdkConnector.sendCommand(moveMsg);
+
+				ServoMsg servo = new MoveMsg(ServoMsg.ROLL_ID, side);
+				mAdkConnector.sendCommand(servo);
+
 				Canvas canvas = mOverlayHolder.lockCanvas();
 				canvas.drawColor(0, Mode.CLEAR);
 				
@@ -156,28 +173,6 @@ public class MainActivity extends Activity {
 
 			}
 		}
-	};
-	
-	private SurfaceHolder.Callback mOverlayCallback = new SurfaceHolder.Callback(){
-
-		@Override
-		public void surfaceCreated(SurfaceHolder holder) {
-
-		}
-
-		@Override
-		public void surfaceChanged(SurfaceHolder holder, int format, int width,
-				int height) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void surfaceDestroyed(SurfaceHolder holder) {
-			// TODO Auto-generated method stub
-			
-		}
-		
 	};
 
 }
