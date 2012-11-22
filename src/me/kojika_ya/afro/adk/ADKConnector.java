@@ -87,11 +87,13 @@ public class ADKConnector extends Fragment{
 	 * @param value
 	 */
 	public void sendCommand(ServoMsg msg){
-		if(nowSending){
-			return;
-		}
-		final byte[] message = msg.toMessage();
 		System.out.println(msg);
+//		if(nowSending){
+//			return;
+//		}else{
+//			
+//		}
+		final byte[] message = msg.toMessage();
 		if(mOutputStream != null){
 			try{
 				mOutputStream.write(message);
@@ -99,20 +101,20 @@ public class ADKConnector extends Fragment{
 				Log.e(TAG, "write failed", e);
 			}
 		}
-		nowSending = true;
-		
-		TimerTask task = new TimerTask() {
-			@Override
-			public void run() {
-				handler.post(new Runnable() {
-					@Override
-					public void run() {
-						nowSending = false;
-					}
-				});
-			}
-		};
-		new Timer().schedule(task, 2000);
+//		nowSending = true;
+//		
+//		TimerTask task = new TimerTask() {
+//			@Override
+//			public void run() {
+//				handler.post(new Runnable() {
+//					@Override
+//					public void run() {
+//						nowSending = false;
+//					}
+//				});
+//			}
+//		};
+//		new Timer().schedule(task, 0, 100);
 	}
 	Handler handler = new Handler();
 	boolean nowSending = false;

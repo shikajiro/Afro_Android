@@ -57,11 +57,11 @@ public class MoveMsg implements ServoMsg{
 	 */
 	@Override
 	public byte[] toMessage() {
-		byte[] msg = new byte[64];
+		byte[] msg = new byte[1];
 		msg[0] = preamble.byteValue();
-		msg[1] = id.byteValue();
-		msg[3] = position.byteValue();
-		msg[2] = (byte) (position >> 8);
+//		msg[1] = id.byteValue();
+//		msg[3] = position.byteValue();
+//		msg[2] = (byte) (position >> 8);
 		return msg;
 	}
 

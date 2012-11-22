@@ -1,13 +1,14 @@
 package me.kojika_ya.afro;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import me.kojika_ya.afro.adk.ADKConnector;
+import me.kojika_ya.afro.adk.EmptyMsg;
 import me.kojika_ya.afro.adk.MoveMsg;
 import me.kojika_ya.afro.adk.ServoMsg;
-
 import android.app.Activity;
-import android.app.FragmentManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
@@ -21,6 +22,7 @@ import android.hardware.Camera.Face;
 import android.hardware.Camera.FaceDetectionListener;
 import android.hardware.Camera.Size;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.SurfaceHolder;
@@ -40,6 +42,8 @@ public class MainActivity extends Activity {
 	private SurfaceHolder mOverlayHolder;
 	
 	private ADKConnector mAdkConnector;
+	
+	short movevar;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -58,6 +62,27 @@ public class MainActivity extends Activity {
 		
 		mAdkConnector = new ADKConnector();
 		getFragmentManager().beginTransaction().add(android.R.id.content, mAdkConnector).commit();
+		
+
+		TimerTask task = new TimerTask() {
+			@Override
+			public void run() {
+				ServoMsg servo;
+				if(movevar == 0){
+					servo = new EmptyMsg();
+				}else{
+					servo = new MoveMsg(ServoMsg.ROLL_ID, movevar);
+				}
+				mAdkConnector.sendCommand(servo);
+
+//				handler.post(new Runnable() {
+//					@Override
+//					public void run() {
+//					}
+//				});
+			}
+		};
+		new Timer().schedule(task, 0, 100);
 	}
 
 	@Override
@@ -112,7 +137,9 @@ public class MainActivity extends Activity {
 		private static final int SIZE_MAX = 2000 * 2000;
 		@Override
 		public void onFaceDetection(Face[] faces, Camera camera) {
-
+			if(0==faces.length){
+				movevar = 0;
+			}
 			for (Face face : faces) {
 				// Log.i("face",
 				// "id:"+face.id+" score:"+face.score+" leftEye:"+face.leftEye+" rightEye:"+face.rightEye+" mouth:"+face.mouth);
@@ -142,15 +169,12 @@ public class MainActivity extends Activity {
 				
 				short upside = (short) (horizontalCenter+700);
 				short side = (short) (verticalCenter+700);
-				
+				movevar = side;
 				//ADKへの送信
 //				MoveMsg moveMsg = new MoveMsg(MoveMsg.SLOPE_ID, upside);
 //				mAdkConnector.sendCommand(moveMsg);
 //				moveMsg = new MoveMsg(MoveMsg.ROLL_ID, side);
 //				mAdkConnector.sendCommand(moveMsg);
-
-				ServoMsg servo = new MoveMsg(ServoMsg.ROLL_ID, side);
-				mAdkConnector.sendCommand(servo);
 
 				Canvas canvas = mOverlayHolder.lockCanvas();
 				canvas.drawColor(0, Mode.CLEAR);
@@ -174,5 +198,6 @@ public class MainActivity extends Activity {
 			}
 		}
 	};
+	Handler handler = new Handler();
 
 }
