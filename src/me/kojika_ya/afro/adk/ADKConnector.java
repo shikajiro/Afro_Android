@@ -3,8 +3,6 @@ package me.kojika_ya.afro.adk;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import android.app.Fragment;
 import android.app.PendingIntent;
@@ -88,11 +86,6 @@ public class ADKConnector extends Fragment{
 	 */
 	public void sendCommand(ServoMsg msg){
 		System.out.println(msg);
-//		if(nowSending){
-//			return;
-//		}else{
-//			
-//		}
 		final byte[] message = msg.toMessage();
 		if(mOutputStream != null){
 			try{
@@ -101,20 +94,7 @@ public class ADKConnector extends Fragment{
 				Log.e(TAG, "write failed", e);
 			}
 		}
-//		nowSending = true;
-//		
-//		TimerTask task = new TimerTask() {
-//			@Override
-//			public void run() {
-//				handler.post(new Runnable() {
-//					@Override
-//					public void run() {
-//						nowSending = false;
-//					}
-//				});
-//			}
-//		};
-//		new Timer().schedule(task, 0, 100);
+
 	}
 	Handler handler = new Handler();
 	boolean nowSending = false;

@@ -6,28 +6,24 @@ public class SpeedMsg implements ServoMsg{
 	private Short sc;
 	private Short speed;
 	
-	public SpeedMsg(short id, short speed) {
+	public SpeedMsg(short id) {
 		super();
-		switch (id) {
-		case ROLL_ID:
-		case SLOPE_ID:
-			break;
-		default:
-			//指定が想定外の場合、強制定期に横回転にする。
-			id = ROLL_ID;
-			return;
-		}
-
 		this.preamble = 0xAA;
 		this.id = (short) (id + 0xC0);
 		this.sc = 0x02;
-		if(0 <= speed && speed < 128){
-			this.speed = speed;
-		}else{
-			this.speed = 0;
-		}
 	}
+	
 
+	public static SpeedMsg newInstancePosition(short id, short speed) {
+		SpeedMsg msg = new SpeedMsg(id);
+		if(0 <= speed && speed < 128){
+			msg.setSpeed(speed);
+		}else{
+			msg.setSpeed((short) 0);
+		}
+		return msg;
+	}
+	
 	/**
 	 * 移動位置をADK側のAPIに合わせたbyte配列に変換する。
 	 * 
@@ -46,7 +42,17 @@ public class SpeedMsg implements ServoMsg{
 	@Override
 	public String toString() {
 		return "SpeedMsg [preamble=" + preamble + ", id=" + id + ", sc=" + sc
-				+ ", speed=" + speed + "]";
+				+ ", speed=" + Integer.toHexString(speed) + "]";
+	}
+
+
+	public Short getSpeed() {
+		return speed;
+	}
+
+
+	public void setSpeed(Short speed) {
+		this.speed = speed;
 	}
 	
 }

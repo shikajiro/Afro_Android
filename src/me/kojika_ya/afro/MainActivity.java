@@ -8,6 +8,7 @@ import me.kojika_ya.afro.adk.ADKConnector;
 import me.kojika_ya.afro.adk.EmptyMsg;
 import me.kojika_ya.afro.adk.MoveMsg;
 import me.kojika_ya.afro.adk.ServoMsg;
+import me.kojika_ya.afro.adk.SpeedMsg;
 import android.app.Activity;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -34,6 +35,7 @@ import android.view.SurfaceView;
  */
 public class MainActivity extends Activity {
 
+	protected static final String TAG = "MainActivity";
 	private SurfaceView mCameraSurfaceView;
 	private SurfaceHolder mCameraHolder;
 	private Camera camera;
@@ -43,7 +45,8 @@ public class MainActivity extends Activity {
 	
 	private ADKConnector mAdkConnector;
 	
-	short movevar;
+	short upside;
+	short side;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -63,26 +66,92 @@ public class MainActivity extends Activity {
 		mAdkConnector = new ADKConnector();
 		getFragmentManager().beginTransaction().add(android.R.id.content, mAdkConnector).commit();
 		
-
+		//ADKに継続的にデータを送るタイマー
 		TimerTask task = new TimerTask() {
 			@Override
 			public void run() {
 				ServoMsg servo;
-				if(movevar == 0){
-					servo = new EmptyMsg();
+				if(dancing){
+					if(DANCE.length <= danceIndex) danceIndex = 0;
+					moveDanceServo(DANCE[danceIndex]);
+					++danceIndex;
+					
 				}else{
-					servo = new MoveMsg(ServoMsg.ROLL_ID, movevar);
+					if(side == 0){
+						servo = new EmptyMsg();
+						mAdkConnector.sendCommand(servo);
+					}else{
+						servo = SpeedMsg.newInstancePosition(ServoMsg.ROLL_ID, (short) 0x40);
+						mAdkConnector.sendCommand(servo);
+						servo = SpeedMsg.newInstancePosition(ServoMsg.SLOPE_ID, (short) 0x40);
+						mAdkConnector.sendCommand(servo);
+						servo = MoveMsg.newInstancePosition(ServoMsg.ROLL_ID, side);
+						mAdkConnector.sendCommand(servo);
+						servo = MoveMsg.newInstancePosition(MoveMsg.SLOPE_ID, upside);
+						mAdkConnector.sendCommand(servo);
+					}
 				}
-				mAdkConnector.sendCommand(servo);
-
-//				handler.post(new Runnable() {
-//					@Override
-//					public void run() {
-//					}
-//				});
+				
 			}
 		};
 		new Timer().schedule(task, 0, 100);
+	}
+	boolean isDanceTimer;
+	boolean dancing;
+	int danceIndex;
+	int[] DANCE = {1, 3, 0, 0, 4, 0, 0, 3, 0, 0, 4, 0, 0, 
+            0, 0, 0, 0, 0, 0, 0, 
+            2, 3, 0, 0, 4, 0, 0, 3, 0, 0, 4, 0, 0, 0, 
+            0, 0, 0, 0, 0, 0};
+
+	private void moveDanceServo(int moveid){
+		ServoMsg servo = null;
+		switch (moveid) {
+		case 0:
+			servo = MoveMsg.newInstanceZeroPosition();
+			mAdkConnector.sendCommand(servo);
+			break;
+		case 1:
+			//1b72
+			servo = SpeedMsg.newInstancePosition(ServoMsg.ROLL_ID, (short) 0x06);
+			mAdkConnector.sendCommand(servo);
+			servo = MoveMsg.newInstanceHexPosition(ServoMsg.ROLL_ID, (byte)0x30, (byte)0x72);
+			mAdkConnector.sendCommand(servo);
+			break;
+		case 2:
+			servo = SpeedMsg.newInstancePosition(ServoMsg.ROLL_ID, (short) 0x06);
+			mAdkConnector.sendCommand(servo);
+			servo = MoveMsg.newInstanceHexPosition(ServoMsg.ROLL_ID, (byte)0x10, (byte)0x72);
+			mAdkConnector.sendCommand(servo);
+			break;
+		case 3:
+			servo = SpeedMsg.newInstancePosition(ServoMsg.SLOPE_ID, (short) 0x30);
+			mAdkConnector.sendCommand(servo);
+			servo = MoveMsg.newInstanceHexPosition(ServoMsg.SLOPE_ID, (byte)0x40, (byte)0x4c);
+			mAdkConnector.sendCommand(servo);
+			break;
+		case 4:
+			servo = SpeedMsg.newInstancePosition(ServoMsg.SLOPE_ID,  (short) 0x30);
+			mAdkConnector.sendCommand(servo);
+			servo = MoveMsg.newInstanceHexPosition(ServoMsg.SLOPE_ID, (byte)0x30, (byte)0x4c);
+			mAdkConnector.sendCommand(servo);
+			break;
+		case 5:
+			servo = SpeedMsg.newInstancePosition(ServoMsg.ROLL_ID, (short) 0x06);
+			mAdkConnector.sendCommand(servo);
+			servo = MoveMsg.newInstanceHexPosition(ServoMsg.ROLL_ID, (byte)0x3a, (byte)0x4c);
+			mAdkConnector.sendCommand(servo);
+			break;
+		case 6:
+			servo = SpeedMsg.newInstancePosition(ServoMsg.SLOPE_ID,  (short) 0x30);
+			mAdkConnector.sendCommand(servo);
+			servo = MoveMsg.newInstanceHexPosition(ServoMsg.SLOPE_ID, (byte)0x3a, (byte)0x4c);
+			mAdkConnector.sendCommand(servo);
+			break;
+		default:
+			break;
+		}
+		
 	}
 
 	@Override
@@ -129,7 +198,8 @@ public class MainActivity extends Activity {
 		}
 
 	};
-	
+	Timer stopTimer;
+	Timer danceTimer;
 	/**
 	 * プレビューに表示された映像に顔が認識された時の処理。
 	 */
@@ -137,9 +207,44 @@ public class MainActivity extends Activity {
 		private static final int SIZE_MAX = 2000 * 2000;
 		@Override
 		public void onFaceDetection(Face[] faces, Camera camera) {
-			if(0==faces.length){
-				movevar = 0;
+			if(faces.length == 0){
+				Log.i(TAG, "not found faces.");
+				side = upside = 0;
+				Log.i(TAG, "isDanceTimer:"+isDanceTimer);
+				if(!isDanceTimer){
+					isDanceTimer = true;
+					TimerTask danceTask = new TimerTask() {
+						@Override
+						public void run() {
+							dancing = true;
+							Log.i(TAG, "dancing flug enable.");
+							TimerTask stopTask = new TimerTask() {
+								@Override
+								public void run() {
+									Log.i(TAG, "dancing stoped.");
+									dancing = false;
+									isDanceTimer = false;
+								}
+							};
+							stopTimer = new Timer();
+							stopTimer.schedule(stopTask, 10 * 1000);
+							Log.i(TAG, "start dance stop timer.");
+						}
+					};
+					danceTimer = new Timer();
+					danceTimer.schedule(danceTask, 10 * 1000);
+					Log.i(TAG, "danceTimer start.");
+				}
+			}else{
+				Log.i(TAG, "found faces.");
+				isDanceTimer = false;
+				if(danceTimer!=null)danceTimer.cancel();
+				if(stopTimer!=null)stopTimer.cancel();
+				Log.i(TAG, "danceTimer cancel.");
+				if(dancing)dancing = false;
+				Log.i(TAG, "dancing flug disable.");
 			}
+			
 			for (Face face : faces) {
 				// Log.i("face",
 				// "id:"+face.id+" score:"+face.score+" leftEye:"+face.leftEye+" rightEye:"+face.rightEye+" mouth:"+face.mouth);
@@ -167,14 +272,8 @@ public class MainActivity extends Activity {
 						+ Math.pow(verticalCenter, 2));
 				Log.d("face", "face depth:" + depth + " hypo:" + hypo);
 				
-				short upside = (short) (horizontalCenter+700);
-				short side = (short) (verticalCenter+700);
-				movevar = side;
-				//ADKへの送信
-//				MoveMsg moveMsg = new MoveMsg(MoveMsg.SLOPE_ID, upside);
-//				mAdkConnector.sendCommand(moveMsg);
-//				moveMsg = new MoveMsg(MoveMsg.ROLL_ID, side);
-//				mAdkConnector.sendCommand(moveMsg);
+				upside = (short) (horizontalCenter+700);
+				side = (short) (verticalCenter+700);
 
 				Canvas canvas = mOverlayHolder.lockCanvas();
 				canvas.drawColor(0, Mode.CLEAR);

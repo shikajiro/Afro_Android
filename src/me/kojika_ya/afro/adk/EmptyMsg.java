@@ -12,7 +12,7 @@ public class EmptyMsg implements ServoMsg{
 	}
 	@Override
 	public byte[] toMessage() {
-		byte[] msg = new byte[1];
+		byte[] msg = new byte[4];
 		msg[0] = preamble.byteValue();
 		return msg;
 	}
